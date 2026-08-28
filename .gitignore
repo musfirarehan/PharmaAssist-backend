@@ -1,0 +1,40 @@
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Python
+# =========================
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# =========================
+# IDE / OS
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# =========================
+# RAG generated data
+# =========================
+app/data/raw/
+app/data/processed/
+app/vectorstore/
+
+# =========================
+# Uploaded / generated files
+# =========================
+uploads/
+
+# =========================
+# Logs
+# =========================
+*.log
