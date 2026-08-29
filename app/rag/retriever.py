@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pickle
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -83,6 +84,32 @@ def _embed_query(query: str) -> np.ndarray:
     return np.asarray(vector, dtype="float32")
 
 
+def _normalize_medicine_name(name: Optional[str]) -> str:
+    if not name:
+        return ""
+
+    normalized = re.sub(r"[^a-z0-9]+", " ", str(name).lower())
+    return " ".join(normalized.split())
+
+
+def _document_matches_requested_medicine(medicine_name: str, document: object) -> bool:
+    requested_name = _normalize_medicine_name(medicine_name)
+    if not requested_name:
+        return True
+
+    document_name = _normalize_medicine_name(getattr(document, "medicine_name", ""))
+    if not document_name:
+        return True
+
+    if requested_name == document_name:
+        return True
+
+    if requested_name in document_name or document_name in requested_name:
+        return True
+
+    return False
+
+
 # ---------------------------------------------------------
 # Core retrieval
 # ---------------------------------------------------------
@@ -116,11 +143,16 @@ def retrieve_medicine(medicine_name: str, top_k: int = 3) -> list[dict]:
     results = []
 
     for score, doc_index in zip(scores[0], indices[0]):
+        if float(score) < MIN_RELEVANCE_SCORE:
+            continue
 
         if doc_index < 0 or doc_index >= len(documents):
             continue
 
         document = documents[doc_index]
+
+        if not _document_matches_requested_medicine(medicine_name, document):
+            continue
 
         results.append({
             "medicine_name": getattr(document, "medicine_name", medicine_name),
