@@ -120,8 +120,22 @@ def _approximate_match(name: str) -> Optional[dict]:
     if isinstance(candidates, dict):
         candidates = [candidates]
 
-    # RxNorm returns candidates ordered by match quality.
-    return candidates[0]
+    # Do not accept a fuzzy result that shares no meaningful word with the
+    # OCR text; brand-name OCR errors must remain unresolved, not become a
+    # different medicine.
+    requested_tokens = {
+        token for token in re.findall(r"[a-z0-9]+", name.lower())
+        if len(token) >= 4
+    }
+    for candidate in candidates:
+        candidate_tokens = {
+            token for token in re.findall(r"[a-z0-9]+", str(candidate.get("name", "")).lower())
+            if len(token) >= 4
+        }
+        if requested_tokens & candidate_tokens:
+            return candidate
+
+    return None
 
 
 def identify_medicine(
