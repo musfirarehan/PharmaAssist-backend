@@ -110,6 +110,22 @@ def _document_matches_requested_medicine(medicine_name: str, document: object) -
     return False
 
 
+def _requested_rxcui(medicine_name: str) -> Optional[str]:
+    try:
+        from app.rag.sources.rxnorm import identify_medicine
+
+        identity = identify_medicine(medicine_name)
+        return identity.rxcui if identity else None
+    except Exception:
+        return None
+
+
+def _document_matches_identity(medicine_name: str, rxcui: Optional[str], document: object) -> bool:
+    if rxcui and str(getattr(document, "rxcui", "")) == str(rxcui):
+        return True
+    return _document_matches_requested_medicine(medicine_name, document)
+
+
 # ---------------------------------------------------------
 # Core retrieval
 # ---------------------------------------------------------
@@ -134,24 +150,32 @@ def retrieve_medicine(medicine_name: str, top_k: int = 3) -> list[dict]:
     if index.ntotal == 0 or not documents:
         return []
 
+    requested_rxcui = _requested_rxcui(medicine_name)
     query = f"What is {medicine_name.strip()}?"
     query_vector = _embed_query(query)
 
-    k = min(top_k, index.ntotal)
+    # Search a wider candidate set for a resolved RxCUI. An alias such as
+    # Paracetamol may be indexed as acetaminophen, so it can rank below the
+    # first few semantic neighbors even though it is the correct identity.
+    k = min(max(top_k, 20) if requested_rxcui else top_k, index.ntotal)
     scores, indices = index.search(query_vector, k)
 
     results = []
 
     for score, doc_index in zip(scores[0], indices[0]):
-        if float(score) < MIN_RELEVANCE_SCORE:
-            continue
-
         if doc_index < 0 or doc_index >= len(documents):
             continue
 
         document = documents[doc_index]
 
-        if not _document_matches_requested_medicine(medicine_name, document):
+        identity_match = (
+            requested_rxcui
+            and str(getattr(document, "rxcui", "")) == str(requested_rxcui)
+        )
+        if not identity_match and float(score) < MIN_RELEVANCE_SCORE:
+            continue
+
+        if not _document_matches_identity(medicine_name, requested_rxcui, document):
             continue
 
         results.append({
@@ -162,6 +186,8 @@ def retrieve_medicine(medicine_name: str, top_k: int = 3) -> list[dict]:
             "rxcui": getattr(document, "rxcui", None),
             "relevance_score": float(score),
         })
+        if len(results) >= top_k:
+            break
 
     return results
 

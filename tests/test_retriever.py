@@ -1,5 +1,6 @@
 import types
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -126,6 +127,47 @@ class RetrieverThresholdTests(unittest.TestCase):
         result = retriever.get_medicine_knowledge("Amoxicillin", top_k=3)
 
         self.assertEqual(result, [])
+
+    def test_retrieve_medicine_matches_alias_by_rxcui(self):
+        fake_index = FakeIndex(
+            np.array([[0.80]]),
+            np.array([[0]]),
+            ntotal=1,
+        )
+        docs = [_doc("acetaminophen", "161")]
+
+        retriever._load_index = lambda: fake_index
+        retriever._load_documents = lambda: docs
+        retriever._embed_query = lambda query: np.array([[0.1]], dtype="float32")
+
+        with patch(
+            "app.rag.sources.rxnorm.identify_medicine",
+            return_value=types.SimpleNamespace(rxcui="161"),
+        ):
+            result = retriever.retrieve_medicine("Paracetamol", top_k=3)
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["medicine_name"], "acetaminophen")
+
+    def test_retrieve_medicine_keeps_low_score_authoritative_alias(self):
+        fake_index = FakeIndex(
+            np.array([[0.20]]),
+            np.array([[0]]),
+            ntotal=1,
+        )
+        docs = [_doc("acetaminophen", "161")]
+
+        retriever._load_index = lambda: fake_index
+        retriever._load_documents = lambda: docs
+        retriever._embed_query = lambda query: np.array([[0.1]], dtype="float32")
+
+        with patch(
+            "app.rag.sources.rxnorm.identify_medicine",
+            return_value=types.SimpleNamespace(rxcui="161"),
+        ):
+            result = retriever.retrieve_medicine("Paracetamol", top_k=3)
+
+        self.assertEqual(len(result), 1)
 
 
 if __name__ == "__main__":

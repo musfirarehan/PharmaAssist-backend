@@ -2,6 +2,7 @@ import os
 import tempfile
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from PIL import Image, UnidentifiedImageError
 
 from app.services.counseling_service import generate_medicine_counseling
 from app.services.ocr_service import extract_prescription_text
@@ -27,7 +28,8 @@ async def upload_prescription(file: UploadFile = File(...)):
     from the response.
     """
 
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
+    suffix = os.path.splitext(file.filename or "")[1].lower()
+    if file.content_type not in ALLOWED_CONTENT_TYPES and suffix not in {".jpg", ".jpeg", ".jfif", ".png"}:
         raise HTTPException(
             status_code=400,
             detail=(
@@ -36,7 +38,7 @@ async def upload_prescription(file: UploadFile = File(...)):
             ),
         )
 
-    suffix = os.path.splitext(file.filename or "")[1] or ".jpg"
+    suffix = suffix or ".jpg"
     temp_path = None
 
     try:
@@ -52,6 +54,15 @@ async def upload_prescription(file: UploadFile = File(...)):
             contents = await file.read()
             temp_file.write(contents)
             temp_path = temp_file.name
+
+        try:
+            with Image.open(temp_path) as image:
+                image.verify()
+        except (UnidentifiedImageError, OSError) as exc:
+            return error_response(
+                error=str(exc),
+                message="The uploaded file is not a readable prescription image",
+            )
 
         # -----------------------------------------
         # Step 1: OCR

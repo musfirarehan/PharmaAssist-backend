@@ -1,25 +1,17 @@
 from typing import List
 
 from fastapi import APIRouter
-from pydantic import BaseModel
 
+from app.schemas import MedicineInput
 from app.services.counseling_service import generate_medicine_counseling
-from app.utils.response import success_response
+from app.utils.response import error_response, success_response
 
 
 router = APIRouter()
 
 
-class Medicine(BaseModel):
-    name: str
-    dosage: str = ""
-    frequency: str = ""
-    duration: str = ""
-    instructions: str = ""
-
-
 @router.post("/counsel")
-def counsel(medicines: List[Medicine]):
+def counsel(medicines: List[MedicineInput]):
     """
     Standalone counseling endpoint - e.g. to regenerate counseling
     for medicines the frontend already has (without re-uploading
@@ -37,7 +29,13 @@ def counsel(medicines: List[Medicine]):
 
     result = generate_medicine_counseling(medicine_data)
 
+    if isinstance(result, dict) and result.get("success") is False:
+        return error_response(
+            result.get("error"),
+            "Counseling generation failed",
+        )
+
     return success_response(
         result,
-        "Medicine counseling generated successfully"
+        "Medicine counseling generated successfully",
     )
