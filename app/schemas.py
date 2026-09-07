@@ -41,6 +41,13 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128)
 
 
+class MessageRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    recipient_id: int = Field(..., gt=0)
+    body: str = Field(..., min_length=1, max_length=4000)
+
+
 class ReminderScheduleMedicine(BaseModel):
     model_config = ConfigDict(extra="ignore")
 

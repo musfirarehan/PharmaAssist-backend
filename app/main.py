@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, chatbot, counseling, knowledge, prescription, reminders
+from app.routes import auth, chatbot, counseling, knowledge, messages, prescription, reminders
 from app.services.auth_service import initialize_auth_database
 
 load_dotenv()
@@ -32,6 +32,7 @@ app.include_router(counseling.router, prefix="/api/v1")
 app.include_router(chatbot.router, prefix="/api/v1")
 app.include_router(reminders.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(messages.router, prefix="/api/v1")
 app.include_router(knowledge.router, prefix="/api/v1")
 
 
