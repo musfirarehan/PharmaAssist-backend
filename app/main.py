@@ -11,8 +11,12 @@ load_dotenv()
 
 allowed_origins = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://pharmaassist-ai.vercel.app",
 ).split(",")
+allowed_origin_regex = os.getenv(
+    "ALLOWED_ORIGIN_REGEX",
+    r"https://[a-zA-Z0-9-]+\.vercel\.app",
+)
 
 app = FastAPI(
     title="PharmaAssist AI Backend",
@@ -22,6 +26,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in allowed_origins if origin.strip()],
+    allow_origin_regex=allowed_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
