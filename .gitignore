@@ -28,7 +28,7 @@ Thumbs.db
 app/data/raw/
 app/data/processed/
 app/vectorstore/
-
+app/data/*.db
 # =========================
 # Uploaded / generated files
 # =========================
