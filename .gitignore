@@ -27,8 +27,11 @@ Thumbs.db
 # =========================
 app/data/raw/
 app/data/processed/
-app/vectorstore/
+app/vectorstore/*
+!app/vectorstore/medicine_index.faiss
+!app/vectorstore/documents.pkl
 app/data/*.db
+
 # =========================
 # Uploaded / generated files
 # =========================
